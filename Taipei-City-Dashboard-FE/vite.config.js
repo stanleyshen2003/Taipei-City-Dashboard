@@ -4,12 +4,13 @@ import viteCompression from "vite-plugin-compression";
 
 // 嘗試讀取環境變數，若不存在則回傳 false
 let isDockerCompose = process?.env.DOCKER_COMPOSE === "true"; // eslint-disable-line no-undef
+let isLocalBackend = process?.env.LOCAL_BACKEND === "true"; // eslint-disable-line no-undef
 
 const serverConfig = isDockerCompose
 	? {
 		// Docker Compose override config
 		host: "0.0.0.0",
-		port: 80, // 如有需要可變更 port
+		port: 80,
 		proxy: {
 			"/api/dev": {
 				target: "http://dashboard-be:8080",
@@ -18,9 +19,22 @@ const serverConfig = isDockerCompose
 			}
 		}
 	}
+	: isLocalBackend
+	? {
+		// Local backend dev config
+		host: "0.0.0.0",
+		port: 3000,
+		proxy: {
+			"/api": {
+				target: "http://localhost:8080",
+				changeOrigin: true,
+				rewrite: (path) => path.replace(/^\/api/, "/v1")
+			}
+		}
+	}
 	: {
 		host: "0.0.0.0",
-		port: 80,
+		port: 3000,
 		proxy: {
 			"/api": {
 				target: "https://citydashboard.taipei/api/v1",

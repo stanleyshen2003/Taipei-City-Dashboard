@@ -99,7 +99,8 @@ func InitLmSession() *ort.DynamicSession[int64, float32] {
 	ort.SetSharedLibraryPath("/usr/lib/libonnxruntime.so") // 設定共享函式庫路徑
 
 	if err := ort.InitializeEnvironment(); err != nil {
-		log.Fatalf("InitializeEnvironment error: %v", err)
+		log.Printf("InitializeEnvironment error (AI features disabled): %v", err)
+		return nil
 	}
 
 	// 2) 模型路徑
@@ -138,8 +139,8 @@ func InitTokenizer() *tokenizer.Tokenizer {
     tokenizerPath := filepath.Join(modelDir, "tokenizer.json")
 	tk, err := pretrained.FromFile(tokenizerPath)
     if err != nil {
-        // 啟動時失敗就報警並停止，這比執行中當機好找原因
-        log.Fatalf("Critical: Failed to load tokenizer: %v", err)
+        log.Printf("Critical: Failed to load tokenizer (AI features disabled): %v", err)
+        return nil
     }
     return tk
 }
