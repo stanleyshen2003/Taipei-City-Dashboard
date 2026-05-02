@@ -30,6 +30,19 @@ Two port mappings were added to `docker/docker-compose-db.yaml` so the locally r
 
 (`postgres-manager` already had `5432:5432`.)
 
+### Disable conflicting system services (one-time)
+
+Ubuntu ships with system `postgresql` (port 5432) and `redis-server` (port 6379). These conflict with the Docker containers and prevent them from binding their ports. Disable them permanently:
+
+```bash
+sudo systemctl stop postgresql redis-server
+sudo systemctl disable postgresql redis-server
+```
+
+If Docker containers were already started before disabling these services, restart them so they acquire the ports (see the tmux recreation steps below).
+
+### Start the containers
+
 A Docker network must exist before starting the containers:
 
 ```bash
@@ -41,6 +54,18 @@ Start the containers:
 ```bash
 cd docker
 sudo docker compose -f docker-compose-db.yaml up -d redis postgres-data postgres-manager
+```
+
+Verify all three containers have port bindings in the `PORTS` column:
+
+```bash
+sudo docker ps
+```
+
+If `redis` shows no ports, connect it to the network manually:
+
+```bash
+sudo docker network connect br_dashboard redis
 ```
 
 ## Database Initialization
@@ -133,9 +158,15 @@ tmux attach -t dashboard
 To recreate the tmux session from scratch after a reboot:
 
 ```bash
-# 1. Restart Docker containers
+# 1. Ensure system services are not running (they conflict with Docker port bindings)
+sudo systemctl stop postgresql redis-server
+
+# 2. Restart Docker containers
 cd /home/winlab/Taipei-City-Dashboard/docker
 sudo docker compose -f docker-compose-db.yaml up -d redis postgres-data postgres-manager
+
+# 2a. If redis has no port binding, connect it to the network
+sudo docker network connect br_dashboard redis 2>/dev/null || true
 
 # 2. Start tmux session
 tmux new-session -d -s dashboard -n backend
